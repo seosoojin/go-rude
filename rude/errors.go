@@ -21,6 +21,25 @@ func (e *Error) Unwrap() error {
 	return e.Err
 }
 
+func NewError(errType ErrorType, code int, message string) *Error {
+	return &Error{
+		Type:    errType,
+		Code:    code,
+		Message: message,
+	}
+}
+
+func NewErrorWithMeta(errType ErrorType, code int, message string, meta map[string]any) *Error {
+	eMeta := maps.Clone(meta)
+
+	return &Error{
+		Type:    errType,
+		Code:    code,
+		Message: message,
+		Meta:    eMeta,
+	}
+}
+
 func WrapError(e *Error, err error) *Error {
 	if err == nil {
 		return nil
