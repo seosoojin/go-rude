@@ -1,16 +1,18 @@
 package rude
 
 import (
+	"encoding/json"
 	"fmt"
 	"maps"
+	"net/http"
 )
 
 type Error struct {
-	Err     error
-	Type    ErrorType
-	Code    int
-	Message string
-	Meta    map[string]any
+	Err      error          `json:"-"`
+	Type     ErrorType      `json:"type,omitempty"`
+	Code     int            `json:"code,omitempty"`
+	Message  string         `json:"message,omitempty"`
+	MetaData map[string]any `json:"metadata,omitempty"`
 }
 
 func (e *Error) Error() string {
@@ -21,22 +23,19 @@ func (e *Error) Unwrap() error {
 	return e.Err
 }
 
+func (e Error) WithMetadata(k string, v any) Error {
+	if e.MetaData == nil {
+		e.MetaData = make(map[string]any)
+	}
+	e.MetaData[k] = v
+	return e
+}
+
 func NewError(errType ErrorType, code int, message string) *Error {
 	return &Error{
 		Type:    errType,
 		Code:    code,
 		Message: message,
-	}
-}
-
-func NewErrorWithMeta(errType ErrorType, code int, message string, meta map[string]any) *Error {
-	eMeta := maps.Clone(meta)
-
-	return &Error{
-		Type:    errType,
-		Code:    code,
-		Message: message,
-		Meta:    eMeta,
 	}
 }
 
@@ -56,10 +55,25 @@ func WrapError(e *Error, err error) *Error {
 	}
 
 	return &Error{
-		Err:     err,
-		Type:    e.Type,
-		Code:    e.Code,
-		Message: message,
-		Meta:    maps.Clone(e.Meta),
+		Err:      err,
+		Type:     e.Type,
+		Code:     e.Code,
+		Message:  message,
+		MetaData: maps.Clone(e.MetaData),
 	}
+}
+
+func (e *Error) Write(w http.ResponseWriter, r *http.Request) {
+	if e.Type == "" {
+		e.Type = "about:blank"
+	}
+
+	if e.Code == 0 {
+		e.Code = http.StatusInternalServerError
+	}
+
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(e.Code)
+
+	_ = json.NewEncoder(w).Encode(e)
 }

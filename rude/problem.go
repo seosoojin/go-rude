@@ -2,7 +2,6 @@ package rude
 
 import (
 	"encoding/json"
-	"errors"
 	"maps"
 	"net/http"
 )
@@ -38,9 +37,6 @@ func (p ProblemDetails) MarshalJSON() ([]byte, error) {
 
 	extensions := p.Extensions
 	for k, v := range extensions {
-		if isReservedProblemKey(k) {
-			continue
-		}
 		base[k] = v
 	}
 
@@ -78,43 +74,23 @@ func (p ProblemDetails) Write(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(p)
 }
 
-func From(err error) ProblemDetails {
-	if err == nil {
-		problem := getProblemByType(TypeInternal)
-
+func FromError(err error) ProblemDetails {
+	switch e := err.(type) {
+	case *Error:
 		return ProblemDetails{
-			Type:   problem.Type,
-			Title:  problem.Title,
-			Status: problem.Status,
-			Detail: "unknown error",
+			Type:       string(e.Type),
+			Title:      e.Message,
+			Status:     e.Code,
+			Detail:     e.Err.Error(),
+			Extensions: e.MetaData,
 		}
-	}
-
-	if e, ok := errors.AsType[*Error](err); ok {
-		m := getProblemByType(e.Type)
-		if m == nil {
-			m = getProblemByType(TypeInternal)
-		}
-		if m == nil {
-			m = &ProblemDetails{Type: "about:blank", Status: http.StatusInternalServerError, Title: http.StatusText(http.StatusInternalServerError)}
-		}
-
+	default:
 		return ProblemDetails{
-			Type:       m.Type,
-			Title:      m.Title,
-			Status:     m.Status,
-			Detail:     e.Message,
-			Extensions: e.Meta,
+			Type:       "about:blank",
+			Title:      err.Error(),
+			Status:     http.StatusInternalServerError,
+			Detail:     err.Error(),
+			Extensions: nil,
 		}
-	}
-
-	problem := getProblemByType(TypeInternal)
-
-	return ProblemDetails{
-		Type:       problem.Type,
-		Title:      problem.Title,
-		Status:     problem.Status,
-		Detail:     err.Error(),
-		Extensions: nil,
 	}
 }

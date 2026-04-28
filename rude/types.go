@@ -7,4 +7,5 @@ const (
 	TypeUnauthorized ErrorType = "UNAUTHORIZED"
 	TypeValidation   ErrorType = "VALIDATION"
 	TypeInternal     ErrorType = "INTERNAL"
+	TypeAboutBlank   ErrorType = "about:blank"
 )
