@@ -58,9 +58,7 @@ func WrapError(e Error, err error) Error {
 			metadata = nil
 		}
 
-		for k, v := range ee.MetaData {
-			metadata[k] = v
-		}
+		maps.Copy(metadata, ee.MetaData)
 
 		return Error{
 			Err:      ee.Err,
