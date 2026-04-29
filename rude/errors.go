@@ -51,12 +51,32 @@ func WrapError(e Error, err error) Error {
 		message = fmt.Sprintf("%s: %v", e.Message, err)
 	}
 
-	return Error{
-		Err:      err,
-		Type:     e.Type,
-		Code:     e.Code,
-		Message:  message,
-		MetaData: maps.Clone(e.MetaData),
+	switch ee := err.(type) {
+	case Error:
+		metadata := maps.Clone(e.MetaData)
+		if len(metadata) == 0 {
+			metadata = nil
+		}
+
+		for k, v := range ee.MetaData {
+			metadata[k] = v
+		}
+
+		return Error{
+			Err:      ee.Err,
+			Type:     ee.Type,
+			Code:     ee.Code,
+			Message:  message,
+			MetaData: metadata,
+		}
+	default:
+		return Error{
+			Err:      err,
+			Type:     e.Type,
+			Code:     e.Code,
+			Message:  message,
+			MetaData: maps.Clone(e.MetaData),
+		}
 	}
 }
 

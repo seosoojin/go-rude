@@ -2,6 +2,7 @@ package rude
 
 import (
 	"encoding/json"
+	"errors"
 	"maps"
 	"net/http"
 )
@@ -75,22 +76,29 @@ func (p ProblemDetails) Write(w http.ResponseWriter, r *http.Request) {
 }
 
 func FromError(err error) ProblemDetails {
-	switch e := err.(type) {
-	case *Error:
-		return ProblemDetails{
-			Type:       string(e.Type),
-			Title:      e.Message,
-			Status:     e.Code,
-			Detail:     e.Err.Error(),
-			Extensions: e.MetaData,
+	var re *Error
+	if errors.As(err, &re) {
+		detail := ""
+		if re.Err != nil {
+			detail = re.Err.Error()
+		} else if re.Message != "" {
+			detail = re.Message
 		}
-	default:
+
 		return ProblemDetails{
-			Type:       "about:blank",
-			Title:      err.Error(),
-			Status:     http.StatusInternalServerError,
-			Detail:     err.Error(),
-			Extensions: nil,
+			Type:       string(re.Type),
+			Title:      re.Message,
+			Status:     re.Code,
+			Detail:     detail,
+			Extensions: maps.Clone(re.MetaData),
 		}
+	}
+
+	return ProblemDetails{
+		Type:       "about:blank",
+		Title:      err.Error(),
+		Status:     http.StatusInternalServerError,
+		Detail:     err.Error(),
+		Extensions: nil,
 	}
 }
