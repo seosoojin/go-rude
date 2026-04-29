@@ -2,6 +2,7 @@ package rude
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"maps"
 	"net/http"
@@ -15,15 +16,15 @@ type Error struct {
 	MetaData map[string]any `json:"metadata,omitempty"`
 }
 
-func (e Error) Error() string {
+func (e *Error) Error() string {
 	return fmt.Sprintf("[%s] %s (code=%d)", e.Type, e.Message, e.Code)
 }
 
-func (e Error) Unwrap() error {
+func (e *Error) Unwrap() error {
 	return e.Err
 }
 
-func (e Error) WithMetadata(k string, v any) Error {
+func (e *Error) WithMetadata(k string, v any) *Error {
 	if e.MetaData == nil {
 		e.MetaData = make(map[string]any)
 	}
@@ -31,15 +32,15 @@ func (e Error) WithMetadata(k string, v any) Error {
 	return e
 }
 
-func NewError(errType ErrorType, code int, message string) Error {
-	return Error{
+func NewError(errType ErrorType, code int, message string) *Error {
+	return &Error{
 		Type:    errType,
 		Code:    code,
 		Message: message,
 	}
 }
 
-func WrapError(e Error, err error) Error {
+func WrapError(e *Error, err error) *Error {
 	if err == nil {
 		return e
 	}
@@ -51,8 +52,7 @@ func WrapError(e Error, err error) Error {
 		message = fmt.Sprintf("%s: %v", e.Message, err)
 	}
 
-	switch ee := err.(type) {
-	case Error:
+	if ee, ok := errors.AsType[*Error](err); ok {
 		metadata := maps.Clone(e.MetaData)
 		if len(metadata) == 0 {
 			metadata = nil
@@ -60,25 +60,25 @@ func WrapError(e Error, err error) Error {
 
 		maps.Copy(metadata, ee.MetaData)
 
-		return Error{
+		return &Error{
 			Err:      ee.Err,
 			Type:     ee.Type,
 			Code:     ee.Code,
 			Message:  message,
 			MetaData: metadata,
 		}
-	default:
-		return Error{
-			Err:      err,
-			Type:     e.Type,
-			Code:     e.Code,
-			Message:  message,
-			MetaData: maps.Clone(e.MetaData),
-		}
+	}
+
+	return &Error{
+		Err:      err,
+		Type:     e.Type,
+		Code:     e.Code,
+		Message:  message,
+		MetaData: maps.Clone(e.MetaData),
 	}
 }
 
-func (e Error) Write(w http.ResponseWriter, r *http.Request) {
+func (e *Error) Write(w http.ResponseWriter, r *http.Request) {
 	if e.Type == "" {
 		e.Type = "about:blank"
 	}
