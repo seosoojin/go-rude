@@ -81,7 +81,7 @@ func FromError(err error) ProblemDetails {
 			Type:       string(e.Type),
 			Title:      e.Message,
 			Status:     e.Code,
-			Detail:     e.Err.Error(),
+			Detail:     e.Error(),
 			Extensions: e.MetaData,
 		}
 	default:
