@@ -31,8 +31,8 @@ func (e Error) WithMetadata(k string, v any) Error {
 	return e
 }
 
-func NewError(errType ErrorType, code int, message string) *Error {
-	return &Error{
+func NewError(errType ErrorType, code int, message string) Error {
+	return Error{
 		Type:    errType,
 		Code:    code,
 		Message: message,
