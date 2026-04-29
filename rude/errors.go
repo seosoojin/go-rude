@@ -15,11 +15,11 @@ type Error struct {
 	MetaData map[string]any `json:"metadata,omitempty"`
 }
 
-func (e *Error) Error() string {
+func (e Error) Error() string {
 	return fmt.Sprintf("[%s] %s (code=%d)", e.Type, e.Message, e.Code)
 }
 
-func (e *Error) Unwrap() error {
+func (e Error) Unwrap() error {
 	return e.Err
 }
 
@@ -39,12 +39,9 @@ func NewError(errType ErrorType, code int, message string) *Error {
 	}
 }
 
-func WrapError(e *Error, err error) *Error {
+func WrapError(e Error, err error) Error {
 	if err == nil {
-		return nil
-	}
-	if e == nil {
-		return &Error{Err: err, Type: TypeInternal, Message: err.Error()}
+		return e
 	}
 
 	message := e.Message
@@ -54,7 +51,7 @@ func WrapError(e *Error, err error) *Error {
 		message = fmt.Sprintf("%s: %v", e.Message, err)
 	}
 
-	return &Error{
+	return Error{
 		Err:      err,
 		Type:     e.Type,
 		Code:     e.Code,
@@ -63,7 +60,7 @@ func WrapError(e *Error, err error) *Error {
 	}
 }
 
-func (e *Error) Write(w http.ResponseWriter, r *http.Request) {
+func (e Error) Write(w http.ResponseWriter, r *http.Request) {
 	if e.Type == "" {
 		e.Type = "about:blank"
 	}
