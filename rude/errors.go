@@ -72,6 +72,7 @@ func WrapError(e *Error, err error) *Error {
 			Code:     ee.Code,
 			Message:  message,
 			MetaData: metadata,
+			builder:  ee.builder,
 		}
 	}
 
