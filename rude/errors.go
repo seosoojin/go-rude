@@ -72,7 +72,7 @@ func WrapError(e *Error, err error) *Error {
 			Code:     ee.Code,
 			Message:  message,
 			MetaData: metadata,
-			builder:  ee.builder,
+			builder:  e.builder,
 		}
 	}
 
@@ -82,6 +82,7 @@ func WrapError(e *Error, err error) *Error {
 		Code:     e.Code,
 		Message:  message,
 		MetaData: maps.Clone(e.MetaData),
+		builder:  e.builder,
 	}
 }
 
