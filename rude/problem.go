@@ -77,20 +77,7 @@ func (p ProblemDetails) Write(w http.ResponseWriter, r *http.Request) {
 
 func FromError(err error) ProblemDetails {
 	if re, ok := errors.AsType[*Error](err); ok {
-		detail := ""
-		if re.Err != nil {
-			detail = re.Err.Error()
-		} else if re.Message != "" {
-			detail = re.Message
-		}
-
-		return ProblemDetails{
-			Type:       string(re.Type),
-			Title:      re.Message,
-			Status:     re.Code,
-			Detail:     detail,
-			Extensions: maps.Clone(re.MetaData),
-		}
+		return re.ToProblemDetails()
 	}
 
 	return ProblemDetails{

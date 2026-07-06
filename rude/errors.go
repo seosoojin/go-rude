@@ -9,11 +9,12 @@ import (
 )
 
 type Error struct {
-	Err      error          `json:"-"`
-	Type     ErrorType      `json:"type,omitempty"`
-	Code     int            `json:"code,omitempty"`
-	Message  string         `json:"message,omitempty"`
-	MetaData map[string]any `json:"metadata,omitempty"`
+	Err      error                 `json:"-"`
+	Type     ErrorType             `json:"type,omitempty"`
+	Code     int                   `json:"code,omitempty"`
+	Message  string                `json:"message,omitempty"`
+	MetaData map[string]any        `json:"metadata,omitempty"`
+	builder  func() ProblemDetails `json:"-"`
 }
 
 func (e *Error) Error() string {
@@ -29,6 +30,11 @@ func (e *Error) WithMetadata(k string, v any) *Error {
 		e.MetaData = make(map[string]any)
 	}
 	e.MetaData[k] = v
+	return e
+}
+
+func (e *Error) WithProblemBuilder(builder func() ProblemDetails) *Error {
+	e.builder = builder
 	return e
 }
 
@@ -91,4 +97,24 @@ func (e *Error) Write(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(e.Code)
 
 	_ = json.NewEncoder(w).Encode(e)
+}
+
+func (e *Error) ToProblemDetails() ProblemDetails {
+	if e.builder != nil {
+		return e.builder()
+	}
+	detail := ""
+	if e.Err != nil {
+		detail = e.Err.Error()
+	} else if e.Message != "" {
+		detail = e.Message
+	}
+
+	return ProblemDetails{
+		Type:       string(e.Type),
+		Title:      e.Message,
+		Status:     e.Code,
+		Detail:     detail,
+		Extensions: maps.Clone(e.MetaData),
+	}
 }
